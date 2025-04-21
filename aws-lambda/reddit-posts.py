@@ -13,6 +13,7 @@ REDDIT_USER_AGENT = os.environ['REDDIT_USER_AGENT']
 # === Config
 SUBREDDIT = "all"
 MIN_USER_KARMA = 5000
+S3_BUCKET = 'mouhabucket123test'
 
 # === Init Reddit client
 reddit = praw.Reddit(
@@ -25,12 +26,12 @@ reddit = praw.Reddit(
 dynamodb = boto3.resource('dynamodb')
 table = dynamodb.Table('reddit_posts')
 
+# === Sentiment Analyzer (initialized once)
+analyzer = SentimentIntensityAnalyzer()
 
 # === Sentiment Analysis
 def analyze_sentiment(text):
-    analyzer = SentimentIntensityAnalyzer()
     return analyzer.polarity_scores(text)
-
 
 # === Convert float to Decimal
 def convert_floats_to_decimal(obj):
@@ -43,31 +44,35 @@ def convert_floats_to_decimal(obj):
     else:
         return obj
 
-
 # === Fetch Reddit Posts
 def fetch_reddit_posts(crypto_name, aliases):
     collected = []
     query = " OR ".join(aliases)
 
     for post in reddit.subreddit(SUBREDDIT).search(query, sort="new", limit=100):
-        if post.author and hasattr(post.author, 'comment_karma'):
-            user_karma = post.author.link_karma + post.author.comment_karma
-            if user_karma >= MIN_USER_KARMA:
-                sentiment = analyze_sentiment(post.title + " " + post.selftext)
-                collected.append({
-                    "post_id": post.id,
-                    "Crypto": crypto_name,
-                    "title": post.title,
-                    "text": post.selftext,
-                    "created_utc": str(datetime.datetime.fromtimestamp(post.created_utc)),
-                    "author": str(post.author),
-                    "user_karma": user_karma,
-                    "sentiment": sentiment,
-                    "url": post.url,
-                    "score": post.score
-                })
-    return collected
+        user_karma = None
+        try:
+            if post.author:
+                user_karma = post.author.link_karma + post.author.comment_karma
+        except Exception:
+            # Author may be deleted or unavailable (404)
+            pass
 
+        if user_karma is not None and user_karma >= MIN_USER_KARMA:
+            sentiment = analyze_sentiment(post.title + " " + post.selftext)
+            collected.append({
+                "post_id": post.id,
+                "Crypto": crypto_name,
+                "title": post.title,
+                "text": post.selftext,
+                "created_utc": str(datetime.datetime.fromtimestamp(post.created_utc)),
+                "author": str(post.author),
+                "user_karma": user_karma,
+                "sentiment": sentiment,
+                "url": post.url,
+                "score": post.score
+            })
+    return collected
 
 # === Save to DynamoDB
 def save_all_to_dynamodb(posts):
@@ -75,7 +80,6 @@ def save_all_to_dynamodb(posts):
         for post in posts:
             safe_post = convert_floats_to_decimal(post)
             batch.put_item(Item=safe_post)
-
 
 # === Lambda Handler
 def lambda_handler(event, context):
@@ -101,7 +105,6 @@ def lambda_handler(event, context):
         "statusCode": 200,
         "total_posts_saved": len(all_posts)
     }
-
 
 # === Local Test
 if __name__ == "__main__":
