@@ -81,6 +81,12 @@ def lambda_handler(event, context):
             community_history.append(community_snapshot)
             developer_history.append(developer_snapshot)
 
+            # Limit history arrays to 240 entries (60 days at 6-hour intervals)
+            if len(community_history) > 240:
+                community_history = community_history[-240:]
+            if len(developer_history) > 240:
+                developer_history = developer_history[-240:]
+
             item = {
                 "id": coin,
                 "symbol": details.get("symbol", ""),
