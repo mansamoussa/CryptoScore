@@ -12,17 +12,16 @@ CryptoScorer provides comprehensive cryptocurrency ratings using a weighted scor
 - Energy Efficiency - Environmental impact and consensus mechanism efficiency
 
 ## Architecture
-AWS Stack:
 
-3 Lambda Functions - Data collection, scoring engine, and API endpoints
-4 DynamoDB Tables - Market data, sentiment data, coin metadata, and scores storage
-1 Step Function - Orchestrates the data pipeline and job scheduling
-CloudWatch - Monitoring and logging
-Glue - Data Processing for latter visualisation in Tableau
+- 3 Lambda Functions - Data collection, scoring engine, and API endpoints
+- 4 DynamoDB Tables - Market data, sentiment data, coin metadata, and scores storage
+- 1 Step Function - Orchestrates the data pipeline and job scheduling
+- CloudWatch - Monitoring and logging
+- Glue - Data Processing for latter visualisation in Tableau
 
 ## Data Pipeline:
 
-Collect market data from CoinGecko API
-Gather Reddit sentiment and GitHub developer metrics
-Calculate weighted scores using normalization algorithms
-Store results with historical tracking
+- Collect market data from CoinGecko API
+- Gather Reddit sentiment and GitHub developer metrics
+- Calculate weighted scores using normalization algorithms
+- Store results with historical tracking
